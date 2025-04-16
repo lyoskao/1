@@ -6,7 +6,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Title="Авторизація">
-
     <Grid x:Name="RootGrid">
         <Grid.Resources>
             <!-- Storyboard для плавного переходу: fade-out/fade-in -->
@@ -18,17 +17,24 @@
                                  AutoReverse="True"/>
             </Storyboard>
         </Grid.Resources>
-
-        <!-- Основний контейнер інтерфейсу -->
         <StackPanel x:Name="MainPanel" Margin="20">
+            <!-- Поле логіну -->
             <TextBlock x:Name="LoginLabel" Text="Логін" FontSize="16" Margin="0,0,0,5"/>
             <TextBox x:Name="LoginTextBox" PlaceholderText="Введіть логін" Margin="0,0,0,10"/>
+            <!-- Поле паролю -->
             <TextBlock x:Name="PasswordLabel" Text="Пароль" FontSize="16" Margin="0,10,0,5"/>
             <PasswordBox x:Name="PasswordBox" PlaceholderText="Введіть пароль" Margin="0,0,0,10"/>
-            <Button x:Name="LoginBtn" Content="Увійти" Click="LoginButton_Click" Margin="0,10,0,5"/>
-            <Button x:Name="RegisterBtn" Content="Зареєструватися" Click="RegisterButton_Click"/>
+            <!-- Панель для підтвердження паролю (видима лише в режимі реєстрації) -->
+            <StackPanel x:Name="RegisterPanel" Visibility="Collapsed">
+                <TextBlock x:Name="ConfirmPasswordLabel" Text="Підтвердження паролю" FontSize="16" Margin="0,10,0,5"/>
+                <PasswordBox x:Name="ConfirmPasswordBox" PlaceholderText="Підтвердіть пароль" Margin="0,0,0,10"/>
+            </StackPanel>
+            <!-- Кнопка дії (Логін або Реєстрація залежно від режиму) -->
+            <Button x:Name="ActionButton" Content="Увійти" Click="ActionButton_Click" Margin="0,10,0,5"/>
+            <!-- Кнопка перемикання режиму -->
+            <Button x:Name="SwitchModeButton" Content="Реєстрація" Click="SwitchModeButton_Click" Margin="0,10,0,5"/>
         </StackPanel>
-        <!-- Кнопка перемикання мови, розташована в нижньому лівому куті -->
+        <!-- Кнопка перемикання мови -->
         <Button x:Name="LangButton"
                 Content="EN"
                 Click="LangButton_Click"

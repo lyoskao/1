@@ -10,18 +10,20 @@ namespace WinUi3
 {
     public sealed partial class AuthWindow : Window
     {
-        // Файл для збереження користувачів (users.txt) зберігається в директорії виконуваного файлу
+        // Файл для збереження користувачів (users.txt) знаходиться у директорії виконуваного файлу
         private readonly string UsersFile = Path.Combine(AppContext.BaseDirectory, "users.txt");
-        // Словник для збереження логінів і паролів
+        // Словник для збереження логінів та паролів
         private Dictionary<string, string> users = new();
-
-        // Прапорець, що визначає поточну мову: false = українська, true = англійська
+        // _isEnglish: false = українська, true = англійська
         private bool _isEnglish = false;
+        // _isRegisterMode: false = режим "Вхід", true = режим "Реєстрація"
+        private bool _isRegisterMode = false;
 
         public AuthWindow()
         {
-            this.InitializeComponent(); // Ініціалізація компонентів з XAML
-            LoadUsers(); // Завантаження користувачів із файлу
+            InitializeComponent(); // Ініціалізація компонентів з XAML
+            LoadUsers();         // Завантаження користувачів із файлу
+            UpdateUIForMode();   // Оновлення інтерфейсу залежно від режиму
         }
 
         private void LoadUsers()
@@ -43,7 +45,9 @@ namespace WinUi3
             }
             catch (Exception ex)
             {
-                ShowErrorDialog($"Помилка завантаження користувачів: {ex.Message}");
+                ShowErrorDialog(_isEnglish ?
+                    $"Error loading users: {ex.Message}" :
+                    $"Помилка завантаження користувачів: {ex.Message}");
             }
         }
 
@@ -60,11 +64,22 @@ namespace WinUi3
             }
             catch (Exception ex)
             {
-                ShowErrorDialog($"Помилка збереження користувачів: {ex.Message}");
+                ShowErrorDialog(_isEnglish ?
+                    $"Error saving users: {ex.Message}" :
+                    $"Помилка збереження користувачів: {ex.Message}");
             }
         }
 
-        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        // Обробник для кнопки дії (Login або Register залежно від режиму)
+        private void ActionButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isRegisterMode)
+                Register();
+            else
+                Login();
+        }
+
+        private void Login()
         {
             try
             {
@@ -92,23 +107,45 @@ namespace WinUi3
             }
             catch (Exception ex)
             {
-                ShowErrorDialog(_isEnglish ? $"Error during login: {ex.Message}" : $"Помилка під час входу: {ex.Message}");
+                ShowErrorDialog(_isEnglish ?
+                    $"Error during login: {ex.Message}" :
+                    $"Помилка під час входу: {ex.Message}");
             }
         }
 
-        private void RegisterButton_Click(object sender, RoutedEventArgs e)
+        private void Register()
         {
             try
             {
                 var login = LoginTextBox.Text;
                 var password = PasswordBox.Password;
+                var confirmPassword = ConfirmPasswordBox.Password;
 
-                if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
+                if (string.IsNullOrWhiteSpace(login) ||
+                    string.IsNullOrWhiteSpace(password) ||
+                    string.IsNullOrWhiteSpace(confirmPassword))
                 {
                     ContentDialog dialog = new()
                     {
                         Title = _isEnglish ? "Error" : "Помилка",
-                        Content = _isEnglish ? "Username and password cannot be empty." : "Логін і пароль не можуть бути порожніми.",
+                        Content = _isEnglish ?
+                                  "Username and passwords cannot be empty." :
+                                  "Логін і паролі не можуть бути порожніми.",
+                        CloseButtonText = _isEnglish ? "OK" : "ОК",
+                        XamlRoot = this.Content.XamlRoot
+                    };
+                    _ = dialog.ShowAsync();
+                    return;
+                }
+
+                if (password != confirmPassword)
+                {
+                    ContentDialog dialog = new()
+                    {
+                        Title = _isEnglish ? "Error" : "Помилка",
+                        Content = _isEnglish ?
+                                  "Passwords do not match." :
+                                  "Паролі не співпадають.",
                         CloseButtonText = _isEnglish ? "OK" : "ОК",
                         XamlRoot = this.Content.XamlRoot
                     };
@@ -121,7 +158,9 @@ namespace WinUi3
                     ContentDialog dialog = new()
                     {
                         Title = _isEnglish ? "Error" : "Помилка",
-                        Content = _isEnglish ? "User already exists." : "Користувач з таким логіном вже існує.",
+                        Content = _isEnglish ?
+                                  "User already exists." :
+                                  "Користувач з таким логіном вже існує.",
                         CloseButtonText = _isEnglish ? "OK" : "ОК",
                         XamlRoot = this.Content.XamlRoot
                     };
@@ -134,7 +173,9 @@ namespace WinUi3
                     ContentDialog dialog = new()
                     {
                         Title = _isEnglish ? "Success" : "Успіх",
-                        Content = _isEnglish ? "Registration successful! You can now log in." : "Реєстрація успішна! Тепер ви можете увійти.",
+                        Content = _isEnglish ?
+                                  "Registration successful! You can now log in." :
+                                  "Реєстрація успішна! Тепер ви можете увійти.",
                         CloseButtonText = _isEnglish ? "OK" : "ОК",
                         XamlRoot = this.Content.XamlRoot
                     };
@@ -143,49 +184,80 @@ namespace WinUi3
             }
             catch (Exception ex)
             {
-                ShowErrorDialog(_isEnglish ? $"Error during registration: {ex.Message}" : $"Помилка під час реєстрації: {ex.Message}");
+                ShowErrorDialog(_isEnglish ?
+                    $"Error during registration: {ex.Message}" :
+                    $"Помилка під час реєстрації: {ex.Message}");
             }
         }
 
-        // Обробник натискання кнопки перемикання мови
+        // Обробник кнопки перемикання режиму ("Вхід" / "Реєстрація")
+        private void SwitchModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isRegisterMode = !_isRegisterMode;
+            UpdateUIForMode();
+        }
+
+        // Метод оновлення інтерфейсу залежно від режиму
+        private void UpdateUIForMode()
+        {
+            if (_isRegisterMode)
+            {
+                RegisterPanel.Visibility = Visibility.Visible;
+                ActionButton.Content = _isEnglish ? "Register" : "Зареєструватися";
+                SwitchModeButton.Content = _isEnglish ? "Login" : "Вхід";
+            }
+            else
+            {
+                RegisterPanel.Visibility = Visibility.Collapsed;
+                ActionButton.Content = _isEnglish ? "Login" : "Увійти";
+                SwitchModeButton.Content = _isEnglish ? "Register" : "Реєстрація";
+            }
+        }
+
+        // Обробник перемикання мови
         private async void LangButton_Click(object sender, RoutedEventArgs e)
         {
-            // Отримуємо Storyboard з ресурсів кореневого елемента (RootGrid)
+            // Запуск анімації fade-out/fade-in
             Storyboard sb = (Storyboard)((FrameworkElement)Content).Resources["FadeOutInStoryboard"];
             sb.Begin();
-
-            // Очікуємо 300 мс (тривалість анімації)
             await Task.Delay(300);
 
-            // Перемикаємо мову
             _isEnglish = !_isEnglish;
             if (_isEnglish)
             {
-                // Англійська локалізація
                 this.Title = "Authentication";
                 LoginLabel.Text = "Username";
                 PasswordLabel.Text = "Password";
                 LoginTextBox.PlaceholderText = "Enter username";
                 PasswordBox.PlaceholderText = "Enter password";
-                LoginBtn.Content = "Login";
-                RegisterBtn.Content = "Register";
-                LangButton.Content = "UA"; // Для перемикання назад на українську
+                ConfirmPasswordLabel.Text = "Confirm Password";
+                ConfirmPasswordBox.PlaceholderText = "Re-enter password";
+                if (_isRegisterMode)
+                    ActionButton.Content = "Register";
+                else
+                    ActionButton.Content = "Login";
+                SwitchModeButton.Content = _isRegisterMode ? "Login" : "Register";
+                LangButton.Content = "UA";
             }
             else
             {
-                // Українська локалізація
                 this.Title = "Авторизація";
                 LoginLabel.Text = "Логін";
                 PasswordLabel.Text = "Пароль";
                 LoginTextBox.PlaceholderText = "Введіть логін";
                 PasswordBox.PlaceholderText = "Введіть пароль";
-                LoginBtn.Content = "Увійти";
-                RegisterBtn.Content = "Зареєструватися";
-                LangButton.Content = "EN"; // Для перемикання на англійську
+                ConfirmPasswordLabel.Text = "Підтвердження паролю";
+                ConfirmPasswordBox.PlaceholderText = "Підтвердіть пароль";
+                if (_isRegisterMode)
+                    ActionButton.Content = "Зареєструватися";
+                else
+                    ActionButton.Content = "Увійти";
+                SwitchModeButton.Content = _isRegisterMode ? "Вхід" : "Реєстрація";
+                LangButton.Content = "EN";
             }
         }
 
-        // Метод для відображення повідомлень про помилки
+        // Метод відображення повідомлень про помилки
         private async void ShowErrorDialog(string message)
         {
             try
@@ -197,7 +269,6 @@ namespace WinUi3
                     CloseButtonText = _isEnglish ? "OK" : "ОК",
                     XamlRoot = this.Content.XamlRoot
                 };
-
                 await errorDialog.ShowAsync();
             }
             catch (Exception ex)
